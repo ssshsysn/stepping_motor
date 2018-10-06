@@ -13,6 +13,18 @@ static MOTOR_INFO       motors[MOTOR_MAX] = {
     },
 };
 
+void MotorInitialize( void )
+{
+    MOTOR_PIN_INFO* pMtr;
+    for(uint16_t nMotor=0; nMotor < MOTOR_MAX; nMotor++ ){
+        pMtr = &(motors[nMotor].phase[0]);
+        HAL_GPIO_WritePin( pMtr[PHAZE_A1].port, pMtr[PHAZE_A1].pin, pMtr[PHAZE_A1].output );
+        HAL_GPIO_WritePin( pMtr[PHAZE_B1].port, pMtr[PHAZE_B1].pin, pMtr[PHAZE_B1].output );
+        HAL_GPIO_WritePin( pMtr[PHAZE_A2].port, pMtr[PHAZE_B1].pin, pMtr[PHAZE_A2].output );
+        HAL_GPIO_WritePin( pMtr[PHAZE_B2].port, pMtr[PHAZE_B2].pin, pMtr[PHAZE_B2].output );
+    }
+}
+
 void ToggleLed( void )
 {
     HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_10);

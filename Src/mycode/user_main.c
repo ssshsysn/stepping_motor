@@ -5,6 +5,7 @@
 // My Initialization Code
 void UserInitialize( void )
 {
+    MotorInitialize();
     TimerInitialize();
 }
 
