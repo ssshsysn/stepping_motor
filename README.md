@@ -22,7 +22,7 @@ Too Slow.
 
 **e.g.**  
 
-- A : PA10  
-- ^A : PB5  
-- B : PA8  
-- ^B : PA9  
+- A1 : PA10  
+- A2 : PB5  
+- B1 : PA8  
+- B2 : PA9  
