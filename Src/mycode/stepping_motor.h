@@ -1,8 +1,8 @@
-#define PHAZE_A1    (0)
-#define PHAZE_B1    (1)
-#define PHAZE_A2    (2)
-#define PHAZE_B2    (3)
-#define PHAZE_MAX   (4)
+#define PHASE_A1    (0)
+#define PHASE_B1    (1)
+#define PHASE_A2    (2)
+#define PHASE_B2    (3)
+#define PHASE_MAX   (4)
 
 // Motor pin information
 typedef struct {
@@ -12,8 +12,11 @@ typedef struct {
 }MOTOR_PIN_INFO;
 // Motor information
 typedef struct {
-    MOTOR_PIN_INFO      phase[PHAZE_MAX];       // phase information
+    MOTOR_PIN_INFO      phase[PHASE_MAX];       // phase information
+    uint32_t            phase_index;            // phase current index
+    int32_t             pos;                    // motor position                    
 }MOTOR_INFO;
 
 void MotorInitialize( void );
+void MotorControl( void );
 void ToggleLed( void );

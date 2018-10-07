@@ -13,6 +13,6 @@ void TimerInitialize( void )
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == s_phTim->Instance) {
-        ToggleLed();
+        MotorControl();
     }
 }

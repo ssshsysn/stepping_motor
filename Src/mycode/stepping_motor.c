@@ -13,15 +13,83 @@ static MOTOR_INFO       motors[MOTOR_MAX] = {
     },
 };
 
+// Phase Output States
+// 2Phase   CW  : 0 -> 2 -> 4 -> 6
+//          CCW : 6 -> 4 -> 2 -> 0
+// 1-2Phase CW  : 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 
+//          CCW : 7 -> 6 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0
+#define MOTOR_OFF_INDEX     (8)
+#define MOTOR_PHASE_MASK    (0x00000007)
+static const GPIO_PinState sc_OutpueState[MOTOR_OFF_INDEX+1][PHASE_MAX] = {
+    // A1               // B1           // A2           // B2
+    {GPIO_PIN_SET,      GPIO_PIN_RESET, GPIO_PIN_RESET, GPIO_PIN_SET    },
+    {GPIO_PIN_SET,      GPIO_PIN_RESET, GPIO_PIN_RESET, GPIO_PIN_RESET  },
+    {GPIO_PIN_SET,      GPIO_PIN_SET,   GPIO_PIN_RESET, GPIO_PIN_RESET  },
+    {GPIO_PIN_RESET,    GPIO_PIN_SET,   GPIO_PIN_RESET, GPIO_PIN_RESET  },
+    {GPIO_PIN_RESET,    GPIO_PIN_SET,   GPIO_PIN_SET,   GPIO_PIN_RESET  },
+    {GPIO_PIN_RESET,    GPIO_PIN_RESET, GPIO_PIN_SET,   GPIO_PIN_RESET  },
+    {GPIO_PIN_RESET,    GPIO_PIN_RESET, GPIO_PIN_SET,   GPIO_PIN_SET    },
+    {GPIO_PIN_RESET,    GPIO_PIN_RESET, GPIO_PIN_RESET, GPIO_PIN_SET    },
+    {GPIO_PIN_RESET,    GPIO_PIN_RESET, GPIO_PIN_RESET, GPIO_PIN_RESET  },
+};
+
+// Private functions definition 
+static uint32_t MotorUpdate( MOTOR_INFO* const pMtr );
+static void MotorSetup( MOTOR_INFO* const pMtr );
+static void MotorOutput( const MOTOR_INFO* const pMtr );
+
+static uint32_t MotorUpdate( MOTOR_INFO* const pMtr )
+{
+    pMtr->phase_index += 1 ;
+    pMtr->pos++;
+    pMtr->phase_index &= MOTOR_PHASE_MASK;
+    return 1;
+}
+
+static void MotorSetup( MOTOR_INFO* const pMtr )
+{
+    if( pMtr->phase_index > MOTOR_OFF_INDEX ){
+        return;
+    }
+
+    uint16_t nIndex = pMtr->phase_index;
+    MOTOR_PIN_INFO* pInfo = &(pMtr->phase[0]);
+    pInfo[PHASE_A1].output = sc_OutpueState[nIndex][PHASE_A1];
+    pInfo[PHASE_B1].output = sc_OutpueState[nIndex][PHASE_B1];
+    pInfo[PHASE_A2].output = sc_OutpueState[nIndex][PHASE_A2];
+    pInfo[PHASE_B2].output = sc_OutpueState[nIndex][PHASE_B2];
+}
+
+static void MotorOutput( const MOTOR_INFO* const pMtr )
+{
+    const MOTOR_PIN_INFO* const pInfo = &(pMtr->phase[0]);
+    HAL_GPIO_WritePin( pInfo[PHASE_A1].port, pInfo[PHASE_A1].pin, pInfo[PHASE_A1].output );
+    HAL_GPIO_WritePin( pInfo[PHASE_B1].port, pInfo[PHASE_B1].pin, pInfo[PHASE_B1].output );
+    HAL_GPIO_WritePin( pInfo[PHASE_A2].port, pInfo[PHASE_B1].pin, pInfo[PHASE_A2].output );
+    HAL_GPIO_WritePin( pInfo[PHASE_B2].port, pInfo[PHASE_B2].pin, pInfo[PHASE_B2].output );
+}
+
 void MotorInitialize( void )
 {
-    MOTOR_PIN_INFO* pMtr;
+    MOTOR_INFO* pMtr;
     for(uint16_t nMotor=0; nMotor < MOTOR_MAX; nMotor++ ){
-        pMtr = &(motors[nMotor].phase[0]);
-        HAL_GPIO_WritePin( pMtr[PHAZE_A1].port, pMtr[PHAZE_A1].pin, pMtr[PHAZE_A1].output );
-        HAL_GPIO_WritePin( pMtr[PHAZE_B1].port, pMtr[PHAZE_B1].pin, pMtr[PHAZE_B1].output );
-        HAL_GPIO_WritePin( pMtr[PHAZE_A2].port, pMtr[PHAZE_B1].pin, pMtr[PHAZE_A2].output );
-        HAL_GPIO_WritePin( pMtr[PHAZE_B2].port, pMtr[PHAZE_B2].pin, pMtr[PHAZE_B2].output );
+        motors[nMotor].phase_index   = MOTOR_OFF_INDEX;
+        motors[nMotor].pos           = 0; 
+        pMtr = &(motors[nMotor]);
+        MotorSetup( pMtr );
+        MotorOutput( pMtr );
+    }
+}
+
+void MotorControl( void )
+{
+    MOTOR_INFO* pMtr;
+    for(uint16_t nMotor=0; nMotor < MOTOR_MAX; nMotor++ ){
+        pMtr = &(motors[nMotor]);
+        if( 0 !=  MotorUpdate( pMtr ) ){
+            MotorSetup( pMtr );
+            MotorOutput( pMtr );
+        }
     }
 }
 
