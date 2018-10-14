@@ -87,6 +87,7 @@ static MOTOR_INFO       motors[MOTOR_MAX] = {
 // Private functions definition 
 static uint32_t MotorUpdate( MOTOR_INFO* const pMtr );
 static void MotorUpdatePhase( MOTOR_INFO* const pMtr );
+static void MotorUpdateCurrentPosition( MOTOR_INFO* const pMtr );
 static void MotorSetup( MOTOR_INFO* const pMtr );
 static void MotorOutput( const MOTOR_INFO* const pMtr );
 
@@ -97,8 +98,6 @@ static uint32_t MotorUpdate( MOTOR_INFO* const pMtr )
     if( pMtr->status == MTS_IDLE )  return 0;
     // Update Phase Index
     MotorUpdatePhase( pMtr );
-    // Update Current Position
-    pMtr->pos++;
 
     return 1;
 }
@@ -109,13 +108,20 @@ static void MotorUpdatePhase( MOTOR_INFO* const pMtr )
     // Phase Index
     int32_t direction_update;
     // Phase mode
-    if( pMtr->phase_mode == PHASE_2 )   direction_update = 2;   // 2Phase mode
-    else                                direction_update = 1;   // 1-2Phase mode
+    if( pMtr->phase_mode == MTP_PHASE_2 )   direction_update = 2;   // 2Phase mode
+    else                                    direction_update = 1;   // 1-2Phase mode
     // Direction
-    if( pMtr->direction == MTD_CCW )    direction_update *= -1;
+    if( pMtr->direction == MTD_CCW )        direction_update *= -1;
     // Update
     pMtr->phase_index += direction_update;
     pMtr->phase_index &= MOTOR_PHASE_MASK;
+}
+
+// function : Update for Current Position
+static void MotorUpdateCurrentPosition( MOTOR_INFO* const pMtr )
+{
+    if( pMtr->direction == MTD_CW ) pMtr->pos++;
+    else                            pMtr->pos--;
 }
 
 // function : Set up for Motor output status
@@ -167,6 +173,7 @@ void MotorControl( void )
         if( 0 !=  MotorUpdate( pMtr ) ){
             MotorSetup( pMtr );
             MotorOutput( pMtr );
+            MotorUpdateCurrentPosition( pMtr );
         }
     }
 }
