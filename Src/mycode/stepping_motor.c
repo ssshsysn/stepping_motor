@@ -63,6 +63,7 @@ typedef struct {
     PHASE_MODE          phase_mode;             // phase mode
     uint32_t            phase_index;            // phase current index
     MOTOR_PIN_INFO      phase[PHASE_MAX];       // phase information
+    uint32_t            break_timeout;          // timeout for motor failure mode
     int32_t             pos;                    // motor position                    
 }MOTOR_INFO;
 
@@ -80,6 +81,7 @@ static MOTOR_INFO       motors[MOTOR_MAX] = {
             {GPIOA, GPIO_PIN_8,  GPIO_PIN_RESET},    // A2
             {GPIOA, GPIO_PIN_9,  GPIO_PIN_RESET},    // B2
         },
+        0,              // breaking timeout
         0,              // motor position
     },
 };
@@ -88,6 +90,7 @@ static MOTOR_INFO       motors[MOTOR_MAX] = {
 static uint32_t MotorUpdate( MOTOR_INFO* const pMtr );
 static void MotorUpdatePhase( MOTOR_INFO* const pMtr );
 static void MotorUpdateCurrentPosition( MOTOR_INFO* const pMtr );
+static void MotorUpdateBreakingTimeout( MOTOR_INFO* const pMtr );
 static void MotorSetup( MOTOR_INFO* const pMtr );
 static void MotorOutput( const MOTOR_INFO* const pMtr );
 
@@ -96,6 +99,8 @@ static uint32_t MotorUpdate( MOTOR_INFO* const pMtr )
 {
     // Check Status
     if( pMtr->status == MTS_IDLE )  return 0;
+    // Update Breaking Timeout
+    MotorUpdateBreakingTimeout( pMtr );
     // Update Phase Index
     MotorUpdatePhase( pMtr );
 
@@ -106,6 +111,13 @@ static uint32_t MotorUpdate( MOTOR_INFO* const pMtr )
 static void MotorUpdatePhase( MOTOR_INFO* const pMtr )
 {
     // Phase Index
+    // Check Breaking timeout
+    if( pMtr->status == MTS_BREAK && pMtr->break_timeout == 0 ){
+        pMtr->phase_index = MOTOR_OFF_INDEX;
+        return;
+    }
+
+    // Update Phase Index
     int32_t direction_update;
     // Phase mode
     if( pMtr->phase_mode == MTP_PHASE_2 )   direction_update = 2;   // 2Phase mode
@@ -122,6 +134,13 @@ static void MotorUpdateCurrentPosition( MOTOR_INFO* const pMtr )
 {
     if( pMtr->direction == MTD_CW ) pMtr->pos++;
     else                            pMtr->pos--;
+}
+
+// function : Update for Breaking Timeout
+static void MotorUpdateBreakingTimeout( MOTOR_INFO* const pMtr )
+{
+    if( pMtr->status != MTS_BREAK ) return;
+    if( pMtr->break_timeout > 0 )   pMtr->break_timeout--;
 }
 
 // function : Set up for Motor output status
@@ -157,6 +176,7 @@ void MotorInitialize( void )
         motors[nMotor].direction     = MTD_CW;
         motors[nMotor].phase_mode    = MTP_PHASE_2;
         motors[nMotor].phase_index   = MOTOR_OFF_INDEX;
+        motors[nMotor].break_timeout = 0,
         motors[nMotor].pos           = 0; 
         pMtr = &(motors[nMotor]);
         MotorSetup( pMtr );
