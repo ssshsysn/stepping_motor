@@ -112,8 +112,11 @@ static void MotorUpdatePhase( MOTOR_INFO* const pMtr )
 {
     // Phase Index
     // Check Breaking timeout
-    if( pMtr->status == MTS_BREAK && pMtr->break_timeout == 0 ){
-        pMtr->phase_index = MOTOR_OFF_INDEX;
+    if( pMtr->status == MTS_BREAK ){
+        // break_timeout = 0 then off, keep Phasebreak_timeout > 0 then keep Phase
+        if( pMtr->break_timeout == 0 ){
+            pMtr->phase_index = MOTOR_OFF_INDEX;
+        }
         return;
     }
 
