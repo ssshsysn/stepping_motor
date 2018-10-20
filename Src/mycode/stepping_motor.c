@@ -62,6 +62,7 @@ typedef struct {
     MOTOR_DIRECTION     direction;              // motor direction
     PHASE_MODE          phase_mode;             // phase mode
     uint32_t            phase_index;            // phase current index
+    uint32_t            phase_pos;              // phase current position
     MOTOR_PIN_INFO      phase[PHASE_MAX];       // phase information
     uint32_t            break_timeout;          // timeout for motor failure mode
     int32_t             pos;                    // motor position                    
@@ -75,6 +76,7 @@ static MOTOR_INFO       motors[MOTOR_MAX] = {
         MTD_CW,         // motor cw
         MTP_PHASE_2,    // phase mode
         MOTOR_OFF_INDEX,// phase current index
+        0,              // phase current position
         {               // phase(pin) information
             {GPIOA, GPIO_PIN_10, GPIO_PIN_RESET},    // A1
             {GPIOB, GPIO_PIN_5,  GPIO_PIN_RESET},    // B1
@@ -113,9 +115,12 @@ static void MotorUpdatePhase( MOTOR_INFO* const pMtr )
     // Phase Index
     // Check Breaking timeout
     if( pMtr->status == MTS_BREAK ){
-        // break_timeout = 0 then off, keep Phasebreak_timeout > 0 then keep Phase
+        // break_timeout = 0 then output off and chahge status to IDLE
+        // break_timeout > 0 then output keep
         if( pMtr->break_timeout == 0 ){
-            pMtr->phase_index = MOTOR_OFF_INDEX;
+            pMtr->phase_pos     = pMtr->phase_index;
+            pMtr->phase_index   = MOTOR_OFF_INDEX;
+            pMtr->status         = MTS_IDLE;
         }
         return;
     }
@@ -179,11 +184,23 @@ void MotorInitialize( void )
         motors[nMotor].direction     = MTD_CW;
         motors[nMotor].phase_mode    = MTP_PHASE_2;
         motors[nMotor].phase_index   = MOTOR_OFF_INDEX;
+        motors[nMotor].phase_pos     = 0;
         motors[nMotor].break_timeout = 0,
         motors[nMotor].pos           = 0; 
         pMtr = &(motors[nMotor]);
+        // Output Initial Position
+        motors[nMotor].phase_index   = 0;
         MotorSetup( pMtr );
         MotorOutput( pMtr );
+        // Output off
+        motors[nMotor].phase_index   = MOTOR_OFF_INDEX;
+        motors[nMotor].phase_pos     = 0;
+        MotorSetup( pMtr );
+        MotorOutput( pMtr );
+        // TEST
+    /*  motors[nMotor].status        = MTS_BREAK;
+        motors[nMotor].phase_index   = 0;
+        motors[nMotor].break_timeout = 5;   */
     }
 }
 
