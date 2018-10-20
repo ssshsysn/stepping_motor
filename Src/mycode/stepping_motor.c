@@ -90,6 +90,7 @@ static MOTOR_INFO       motors[MOTOR_MAX] = {
 
 // Private functions definition 
 static uint32_t MotorUpdate( MOTOR_INFO* const pMtr );
+static void MotorUpdateNextStatus( MOTOR_INFO* const pMtr );
 static void MotorUpdatePhase( MOTOR_INFO* const pMtr );
 static void MotorUpdateCurrentPosition( MOTOR_INFO* const pMtr );
 static void MotorUpdateBreakingTimeout( MOTOR_INFO* const pMtr );
@@ -105,8 +106,25 @@ static uint32_t MotorUpdate( MOTOR_INFO* const pMtr )
     MotorUpdateBreakingTimeout( pMtr );
     // Update Phase Index
     MotorUpdatePhase( pMtr );
-
+    // Update status for next process
+    MotorUpdateNextStatus( pMtr );
     return 1;
+}
+
+// function : Update for motor Next status
+static void MotorUpdateNextStatus( MOTOR_INFO* const pMtr )
+{
+    switch( pMtr->status ){
+        default:
+        case MTS_IDLE:
+        case MTS_RUN_ACCEL:
+        case MTS_RUN_CONST:
+        case MTS_RUN_DECEL:
+            break;
+        case MTS_BREAK:
+            if( pMtr->break_timeout == 0 ) pMtr->status = MTS_IDLE;
+            break;
+    }
 }
 
 // function : Update for Phase Index
@@ -120,7 +138,6 @@ static void MotorUpdatePhase( MOTOR_INFO* const pMtr )
         if( pMtr->break_timeout == 0 ){
             pMtr->phase_pos     = pMtr->phase_index;
             pMtr->phase_index   = MOTOR_OFF_INDEX;
-            pMtr->status         = MTS_IDLE;
         }
         return;
     }
@@ -198,9 +215,10 @@ void MotorInitialize( void )
         MotorSetup( pMtr );
         MotorOutput( pMtr );
         // TEST
-    /*  motors[nMotor].status        = MTS_BREAK;
+        /*motors[nMotor].status        = MTS_BREAK;
+        motors[nMotor].direction     = MTD_CCW;
         motors[nMotor].phase_index   = 0;
-        motors[nMotor].break_timeout = 5;   */
+        motors[nMotor].break_timeout = 6;*/   
     }
 }
 
