@@ -157,6 +157,7 @@ static void MotorUpdatePhase( MOTOR_INFO* const pMtr )
 // function : Update for Current Position
 static void MotorUpdateCurrentPosition( MOTOR_INFO* const pMtr )
 {
+    if( pMtr->status == MTS_BREAK || pMtr->status == MTS_IDLE ) return;
     if( pMtr->direction == MTD_CW ) pMtr->pos++;
     else                            pMtr->pos--;
 }
@@ -215,10 +216,10 @@ void MotorInitialize( void )
         MotorSetup( pMtr );
         MotorOutput( pMtr );
         // TEST
-        /*motors[nMotor].status        = MTS_BREAK;
+        motors[nMotor].status        = MTS_BREAK;
         motors[nMotor].direction     = MTD_CCW;
         motors[nMotor].phase_index   = 0;
-        motors[nMotor].break_timeout = 6;*/   
+        motors[nMotor].break_timeout = 6;   
     }
 }
 
