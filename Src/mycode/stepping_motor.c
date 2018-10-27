@@ -45,8 +45,8 @@ static const GPIO_PinState sc_OutputState[MOTOR_OFF_INDEX+1][PHASE_MAX] = {
 
 // Phase mode
 typedef enum {
-    MTP_PHASE_2     = 0,    // 2Phase mode
-    MTP_PHASE_1_2,          // 1-2Phase mode
+    MTP_PHASE_FULL     = 0,  // FULL-STEP Phase mode
+    MTP_PHASE_HALF,          // HALF-STEP Phase mode
 }PHASE_MODE;
 
 // Motor pin information structure
@@ -74,7 +74,7 @@ static MOTOR_INFO       motors[MOTOR_MAX] = {
     {   // Motor0 information
         MTS_IDLE,       // motor status
         MTD_CW,         // motor cw
-        MTP_PHASE_2,    // phase mode
+        MTP_PHASE_FULL, // phase mode
         MOTOR_OFF_INDEX,// phase current index
         0,              // phase current position
         {               // phase(pin) information
@@ -147,8 +147,8 @@ static void MotorUpdatePhase( MOTOR_INFO* const pMtr )
     // Update Phase Index
     int32_t direction_update;
     // Phase mode
-    if( pMtr->phase_mode == MTP_PHASE_2 )   direction_update = 2;   // 2Phase mode
-    else                                    direction_update = 1;   // 1-2Phase mode
+    if( pMtr->phase_mode == MTP_PHASE_FULL )    direction_update = 2;   // FULL-STEP
+    else                                        direction_update = 1;   // HALF-STEP
     // Direction
     if( pMtr->direction == MTD_CCW )        direction_update *= -1;
     // Update
@@ -160,8 +160,8 @@ static void MotorUpdatePhase( MOTOR_INFO* const pMtr )
 static void MotorUpdateCurrentPosition( MOTOR_INFO* const pMtr )
 {
     if( pMtr->status == MTS_BREAK || pMtr->status == MTS_IDLE ) return;
-    if( pMtr->phase_mode == MTP_PHASE_1_2 ){
-        // now Halfstep position then return
+    if( pMtr->phase_mode == MTP_PHASE_HALF ){
+        // now HALF-STEP position then return
         if( pMtr->phase_pos%2 ) return;
     }
     // Update
@@ -207,7 +207,7 @@ void MotorInitialize( void )
     for(uint16_t nMotor=0; nMotor < MOTOR_MAX; nMotor++ ){
         motors[nMotor].status        = MTS_IDLE;
         motors[nMotor].direction     = MTD_CW;
-        motors[nMotor].phase_mode    = MTP_PHASE_2;
+        motors[nMotor].phase_mode    = MTP_PHASE_FULL;
         motors[nMotor].phase_index   = MOTOR_OFF_INDEX;
         motors[nMotor].phase_pos     = 0;
         motors[nMotor].break_timeout = 0,
