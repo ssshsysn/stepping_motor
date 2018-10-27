@@ -106,6 +106,8 @@ static uint32_t MotorUpdate( MOTOR_INFO* const pMtr )
     MotorUpdateBreakingTimeout( pMtr );
     // Update Phase Index
     MotorUpdatePhase( pMtr );
+    // Update Current Motor position
+    MotorUpdateCurrentPosition( pMtr );
     // Update status for next process
     MotorUpdateNextStatus( pMtr );
     return 1;
@@ -158,6 +160,11 @@ static void MotorUpdatePhase( MOTOR_INFO* const pMtr )
 static void MotorUpdateCurrentPosition( MOTOR_INFO* const pMtr )
 {
     if( pMtr->status == MTS_BREAK || pMtr->status == MTS_IDLE ) return;
+    if( pMtr->phase_mode == MTP_PHASE_1_2 ){
+        // now Halfstep position then return
+        if( pMtr->phase_pos%2 ) return;
+    }
+    // Update
     if( pMtr->direction == MTD_CW ) pMtr->pos++;
     else                            pMtr->pos--;
 }
@@ -232,7 +239,6 @@ void MotorControl( void )
         if( 0 !=  MotorUpdate( pMtr ) ){
             MotorSetup( pMtr );
             MotorOutput( pMtr );
-            MotorUpdateCurrentPosition( pMtr );
         }
     }
 }
