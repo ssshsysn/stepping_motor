@@ -61,11 +61,13 @@ typedef struct {
     MOTOR_STATUS        status;                 // motor status
     MOTOR_DIRECTION     direction;              // motor direction
     PHASE_MODE          phase_mode;             // phase mode
+    int32_t             phase_index_update_num; // phase index update number
     uint32_t            phase_index;            // phase current index
     uint32_t            phase_pos;              // phase current position
     MOTOR_PIN_INFO      phase[PHASE_MAX];       // phase information
     uint32_t            break_timeout;          // timeout for motor failure mode
-    int32_t             pos;                    // motor position                    
+    int32_t             motor_position;         // motor position
+    int32_t             target_position;        // target position
 }MOTOR_INFO;
 
 // Motor information
@@ -75,6 +77,7 @@ static MOTOR_INFO       motors[MOTOR_MAX] = {
         MTS_IDLE,       // motor status
         MTD_CW,         // motor cw
         MTP_PHASE_FULL, // phase mode
+        2,              // phase index update number
         MOTOR_OFF_INDEX,// phase current index
         0,              // phase current position
         {               // phase(pin) information
@@ -85,6 +88,7 @@ static MOTOR_INFO       motors[MOTOR_MAX] = {
         },
         0,              // breaking timeout
         0,              // motor position
+        0,              // target position
     },
 };
 
@@ -94,6 +98,7 @@ static void MotorUpdateNextStatus( MOTOR_INFO* const pMtr );
 static void MotorUpdatePhase( MOTOR_INFO* const pMtr );
 static void MotorUpdateCurrentPosition( MOTOR_INFO* const pMtr );
 static void MotorUpdateBreakingTimeout( MOTOR_INFO* const pMtr );
+static void MotorDecisionPhaseIndexUpdateNumber( MOTOR_INFO* const pMtr );
 static void MotorSetup( MOTOR_INFO* const pMtr );
 static void MotorOutput( const MOTOR_INFO* const pMtr );
 
@@ -120,8 +125,10 @@ static void MotorUpdateNextStatus( MOTOR_INFO* const pMtr )
         default:
         case MTS_IDLE:
         case MTS_RUN_ACCEL:
-        case MTS_RUN_CONST:
         case MTS_RUN_DECEL:
+            break;
+        case MTS_RUN_CONST:
+            if( pMtr->target_position == pMtr->motor_position ) pMtr->status = MTS_BREAK;
             break;
         case MTS_BREAK:
             if( pMtr->break_timeout == 0 ) pMtr->status = MTS_IDLE;
@@ -144,15 +151,8 @@ static void MotorUpdatePhase( MOTOR_INFO* const pMtr )
         return;
     }
 
-    // Update Phase Index
-    int32_t direction_update;
-    // Phase mode
-    if( pMtr->phase_mode == MTP_PHASE_FULL )    direction_update = 2;   // FULL-STEP
-    else                                        direction_update = 1;   // HALF-STEP
-    // Direction
-    if( pMtr->direction == MTD_CCW )        direction_update *= -1;
     // Update
-    pMtr->phase_index += direction_update;
+    pMtr->phase_index += pMtr->phase_index_update_num;
     pMtr->phase_index &= MOTOR_PHASE_MASK;
 }
 
@@ -165,8 +165,8 @@ static void MotorUpdateCurrentPosition( MOTOR_INFO* const pMtr )
         if( pMtr->phase_pos%2 ) return;
     }
     // Update
-    if( pMtr->direction == MTD_CW ) pMtr->pos++;
-    else                            pMtr->pos--;
+    if( pMtr->direction == MTD_CW ) pMtr->motor_position++;
+    else                            pMtr->motor_position--;
 }
 
 // function : Update for Breaking Timeout
@@ -174,6 +174,16 @@ static void MotorUpdateBreakingTimeout( MOTOR_INFO* const pMtr )
 {
     if( pMtr->status != MTS_BREAK ) return;
     if( pMtr->break_timeout > 0 )   pMtr->break_timeout--;
+}
+
+// function : Desision Phase Index Update Number
+static void MotorDecisionPhaseIndexUpdateNumber( MOTOR_INFO* const pMtr )
+{
+    // Phase mode
+    if( pMtr->phase_mode == MTP_PHASE_FULL )    pMtr->phase_index_update_num = 2;   // FULL-STEP
+    else                                        pMtr->phase_index_update_num = 1;   // HALF-STEP
+    // Direction
+    if( pMtr->direction == MTD_CCW )            pMtr->phase_index_update_num *= -1;
 }
 
 // function : Set up for Motor output status
@@ -208,10 +218,12 @@ void MotorInitialize( void )
         motors[nMotor].status        = MTS_IDLE;
         motors[nMotor].direction     = MTD_CW;
         motors[nMotor].phase_mode    = MTP_PHASE_FULL;
+        motors[nMotor].phase_index_update_num = 2;
         motors[nMotor].phase_index   = MOTOR_OFF_INDEX;
         motors[nMotor].phase_pos     = 0;
         motors[nMotor].break_timeout = 0,
-        motors[nMotor].pos           = 0; 
+        motors[nMotor].motor_position   = 0; 
+        motors[nMotor].target_position  = 0; 
         pMtr = &(motors[nMotor]);
         // Output Initial Position
         motors[nMotor].phase_index   = 0;
@@ -223,10 +235,12 @@ void MotorInitialize( void )
         MotorSetup( pMtr );
         MotorOutput( pMtr );
         // TEST
-        motors[nMotor].status        = MTS_BREAK;
+        motors[nMotor].status        = MTS_RUN_CONST;
         motors[nMotor].direction     = MTD_CCW;
         motors[nMotor].phase_index   = 0;
-        motors[nMotor].break_timeout = 6;   
+        motors[nMotor].break_timeout = 6;
+        motors[nMotor].target_position = -12;
+        MotorDecisionPhaseIndexUpdateNumber(pMtr);   
     }
 }
 
