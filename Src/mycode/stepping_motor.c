@@ -96,6 +96,7 @@ static MOTOR_INFO       motors[MOTOR_MAX] = {
 static uint32_t MotorUpdate( MOTOR_INFO* const pMtr );
 static void MotorUpdateNextStatus( MOTOR_INFO* const pMtr );
 static void MotorUpdatePhase( MOTOR_INFO* const pMtr );
+static uint32_t MotorUpdatePhaseIfBreak( MOTOR_INFO* const pMtr );
 static void MotorUpdateCurrentPosition( MOTOR_INFO* const pMtr );
 static void MotorUpdateBreakingTimeout( MOTOR_INFO* const pMtr );
 static void MotorDecisionPhaseIndexUpdateNumber( MOTOR_INFO* const pMtr );
@@ -141,19 +142,24 @@ static void MotorUpdatePhase( MOTOR_INFO* const pMtr )
 {
     // Phase Index
     // Check Breaking timeout
-    if( pMtr->status == MTS_BREAK ){
-        // break_timeout = 0 then output off and chahge status to IDLE
-        // break_timeout > 0 then output keep
-        if( pMtr->break_timeout == 0 ){
-            pMtr->phase_pos     = pMtr->phase_index;
-            pMtr->phase_index   = MOTOR_OFF_INDEX;
-        }
-        return;
-    }
+    if( MotorUpdatePhaseIfBreak(pMtr) == 0 ) return;
 
     // Update
     pMtr->phase_index += pMtr->phase_index_update_num;
     pMtr->phase_index &= MOTOR_PHASE_MASK;
+}
+static uint32_t MotorUpdatePhaseIfBreak( MOTOR_INFO* const pMtr )
+{
+    if( pMtr->status != MTS_BREAK )  return 0;
+ 
+    // Check Breaking timeout
+    // break_timeout = 0 then output off and change status to IDLE
+    // break_timeout > 0 then output keep
+    if( pMtr->break_timeout == 0 ){
+        pMtr->phase_pos     = pMtr->phase_index;
+        pMtr->phase_index   = MOTOR_OFF_INDEX;
+    }
+    return 1;
 }
 
 // function : Update for Current Position
