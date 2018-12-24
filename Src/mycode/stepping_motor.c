@@ -251,7 +251,7 @@ static void MotorOutput( const MOTOR_INFO* const pMtr )
     const MOTOR_PIN_INFO* const pInfo = &(pMtr->phase[0]);
     HAL_GPIO_WritePin( pInfo[PHASE_A1].port, pInfo[PHASE_A1].pin, pInfo[PHASE_A1].output );
     HAL_GPIO_WritePin( pInfo[PHASE_B1].port, pInfo[PHASE_B1].pin, pInfo[PHASE_B1].output );
-    HAL_GPIO_WritePin( pInfo[PHASE_A2].port, pInfo[PHASE_B1].pin, pInfo[PHASE_A2].output );
+    HAL_GPIO_WritePin( pInfo[PHASE_A2].port, pInfo[PHASE_A2].pin, pInfo[PHASE_A2].output );
     HAL_GPIO_WritePin( pInfo[PHASE_B2].port, pInfo[PHASE_B2].pin, pInfo[PHASE_B2].output );
 }
 
