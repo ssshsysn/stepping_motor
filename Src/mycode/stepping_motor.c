@@ -50,12 +50,6 @@ static const GPIO_PinState sc_OutputState[MOTOR_OFF_INDEX+1][PHASE_MAX] = {
     {GPIO_PIN_RESET,    GPIO_PIN_RESET, GPIO_PIN_RESET, GPIO_PIN_RESET  },
 };
 
-// Phase mode
-typedef enum {
-    MTP_PHASE_FULL     = 0,  // FULL-STEP Phase mode
-    MTP_PHASE_HALF,          // HALF-STEP Phase mode
-}PHASE_MODE;
-
 // Motor pin information structure
 typedef struct {
     GPIO_TypeDef*       port;           // GPIO PORT NUMBER
@@ -198,10 +192,9 @@ static uint32_t MotorUpdatePhaseIfBreak( MOTOR_INFO* const pMtr )
 // function : Update for Current Position
 static void MotorUpdateCurrentPosition( MOTOR_INFO* const pMtr )
 {
-    //if( pMtr->status == MTS_BREAK || pMtr->status == MTS_IDLE ) return;
     if( pMtr->phase_mode == MTP_PHASE_HALF ){
         // now HALF-STEP position then return
-        if( pMtr->phase_pos%2 ) return;
+        if( pMtr->phase_index%2 ) return;
     }
 
     // Update
@@ -288,7 +281,7 @@ void MotorInitialize( void )
         //motors[nMotor].phase_pos     = 6;
         //motors[nMotor].motor_position= -1; 
         //MotorMove( 0, 1, 12 );
-        MotorMove( 0, 1, 1 );
+        //MotorMove( 0, 1, 1 );
         //MotorMove( 0, 1000, 12 );
         //MotorMove( 0, 1000, -12 );
         //MotorMove( 0, 1000, 0 );
@@ -326,6 +319,9 @@ void MotorMove( uint16_t nMotor, uint32_t pps, int32_t position )
     // Phase Setup
     MotorDecisionPhaseIndexUpdateNumber( &motors[nMotor] );  
 
+    // Break timeout
+    motors[nMotor].break_timeout = motors[nMotor].pps_timer;
+
     // Start
     motors[nMotor].phase_index  = motors[nMotor].phase_pos;
     motors[nMotor].break_timer  = motors[nMotor].break_timeout;
@@ -334,4 +330,29 @@ void MotorMove( uint16_t nMotor, uint32_t pps, int32_t position )
 
     // Enable Interrupt
 
+}
+
+// function : Check for motor busy
+uint32_t MotorIsBusy( uint16_t nMotor )
+{
+    if( nMotor > (MOTOR_MAX - 1) ) return 0; 
+
+    return (motors[nMotor].status == MTS_IDLE) ? 0 : 1;
+}
+
+// function : Reset Position
+void MotorResetPosition( uint16_t nMotor )
+{
+    if( nMotor > (MOTOR_MAX - 1) ) return; 
+
+    motors[nMotor].motor_position = 0;
+}
+
+// function : Set for Phase Mode
+void MotorSetPhaseMode( uint16_t nMotor, PHASE_MODE phase_mode )
+{
+    if( nMotor > (MOTOR_MAX - 1) ) return; 
+    if( (MTP_PHASE_FULL != phase_mode) && (MTP_PHASE_HALF != phase_mode) ) return; 
+
+    motors[nMotor].phase_mode = phase_mode;
 }
