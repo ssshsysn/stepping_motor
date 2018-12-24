@@ -2,7 +2,8 @@
 #include "stepping_motor.h"
 
 // Interrupt Timer interval
-#define INTERRUPT_TIMER_INTERVAL  (1000)    // 1000ms / Interrupt interval(ms)
+#define INTERRUPT_TIMER_INTERVAL    (1000)    // 1000ms / Interrupt interval(ms)
+#define CALC_PPS_TIMER_COUNT(pps)   ((uint32_t)(INTERRUPT_TIMER_INTERVAL/pps))
 
 // default value for PPS
 #define DEFAULT_PPS               (1000)
@@ -86,7 +87,7 @@ static MOTOR_INFO       motors[MOTOR_MAX] = {
         MTS_IDLE,       // motor status
         MTD_CW,         // motor cw
         DEFAULT_PPS,    // PPS
-        (uint32_t)(INTERRUPT_TIMER_INTERVAL/DEFAULT_PPS),      // PPS count down timer for phase output
+        CALC_PPS_TIMER_COUNT(DEFAULT_PPS),      // PPS count down timer for phase output
         MTP_PHASE_FULL, // phase mode
         2,              // phase index update number
         MOTOR_OFF_INDEX,// phase current index
@@ -165,7 +166,7 @@ static uint32_t MotorUpdatePhase( MOTOR_INFO* const pMtr )
 static uint32_t MotorUpdatePhaseIfConst( MOTOR_INFO* const pMtr )
 {
     if( pMtr->status != MTS_RUN_CONST )  return 0;
-    if( pMtr->pps_timer != ((uint32_t)(INTERRUPT_TIMER_INTERVAL / pMtr->pps)) ) return 0;
+    if( pMtr->pps_timer != CALC_PPS_TIMER_COUNT(pMtr->pps) ) return 0;
 
     // Update
     pMtr->phase_index += pMtr->phase_index_update_num;
@@ -217,7 +218,7 @@ static void MotorUpdatePPSTimer( MOTOR_INFO* const pMtr )
     pMtr->pps_timer--;
     if( pMtr->pps_timer == 0 ){
         // Reset pps_timer
-        pMtr->pps_timer = (uint32_t)(INTERRUPT_TIMER_INTERVAL / pMtr->pps);
+        pMtr->pps_timer = CALC_PPS_TIMER_COUNT(pMtr->pps);
     }
 }
 
@@ -263,7 +264,7 @@ void MotorInitialize( void )
         motors[nMotor].status        = MTS_IDLE;
         motors[nMotor].direction     = MTD_CW;
         motors[nMotor].pps           = DEFAULT_PPS;
-        motors[nMotor].pps_timer     = (uint32_t)(INTERRUPT_TIMER_INTERVAL/DEFAULT_PPS);
+        motors[nMotor].pps_timer     = CALC_PPS_TIMER_COUNT(DEFAULT_PPS);
         motors[nMotor].phase_mode    = MTP_PHASE_FULL;
         motors[nMotor].phase_index_update_num = 2;
         motors[nMotor].phase_index   = MOTOR_OFF_INDEX;
@@ -283,8 +284,11 @@ void MotorInitialize( void )
         MotorSetup( pMtr );
         MotorOutput( pMtr );
         // TEST
+        //motors[nMotor].phase_mode    = MTP_PHASE_HALF;
         //motors[nMotor].phase_pos     = 6;
         //motors[nMotor].motor_position= -1; 
+        //MotorMove( 0, 1, 12 );
+        MotorMove( 0, 1, 1 );
         //MotorMove( 0, 1000, 12 );
         //MotorMove( 0, 1000, -12 );
         //MotorMove( 0, 1000, 0 );
@@ -312,7 +316,7 @@ void MotorMove( uint16_t nMotor, uint32_t pps, int32_t position )
 
     // PPS Setup
     motors[nMotor].pps          = pps;
-    motors[nMotor].pps_timer    = (uint32_t)(INTERRUPT_TIMER_INTERVAL / pps);
+    motors[nMotor].pps_timer    = CALC_PPS_TIMER_COUNT(pps);
 
     // Direction and target position Setup
     if( position >= motors[nMotor].motor_position ) motors[nMotor].direction     = MTD_CW;
