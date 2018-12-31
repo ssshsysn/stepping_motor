@@ -37,7 +37,7 @@ static void StartMotion(void)
 {
     static int32_t s_Index = 0;
     const static uint32_t s_pps[TEST_SIZE] = {1,2,10,50};
-    const static int32_t s_pos[TEST_SIZE] = {8,16,96,496};
+    const static int32_t s_pos[TEST_SIZE] = {8,16,46,96};
     if(0 != MotorIsBusy(0))  return;
 
     MotorMove( 0, s_pps[s_Index], s_pos[s_Index] );
